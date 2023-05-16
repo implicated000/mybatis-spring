@@ -48,6 +48,7 @@ public abstract class SqlSessionDaoSupport extends DaoSupport {
    *          a factory of SqlSession
    */
   public void setSqlSessionFactory(SqlSessionFactory sqlSessionFactory) {
+      // sqlSessionTemplate 覆盖 sqlSessionFactory
     if (this.sqlSessionTemplate == null || sqlSessionFactory != this.sqlSessionTemplate.getSqlSessionFactory()) {
       this.sqlSessionTemplate = createSqlSessionTemplate(sqlSessionFactory);
     }
