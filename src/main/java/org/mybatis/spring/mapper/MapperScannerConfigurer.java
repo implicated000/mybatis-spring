@@ -361,17 +361,19 @@ public class MapperScannerConfigurer
      */
     @Override
     public void postProcessBeanDefinitionRegistry(BeanDefinitionRegistry registry) {
-        // 在 bean 加载后，实例化之前执行
-        // 是否处理 MapperScan 属性中的占位符，默认 true
+        // 所有的Bean生成都有个顺序: 定义 --> 加载 --> 初始化
+        // 后置处理器 在 bean 加载后，实例化之前执行
+
         if (this.processPropertyPlaceHolders) {
+            // 解析 MapperScan 属性中的占位符，默认 true
             processPropertyPlaceHolders();
         }
 
         // mapper 扫描器
         ClassPathMapperScanner scanner = new ClassPathMapperScanner(registry);
-        // 是否要将接口添加到 Configuration 全局配置对象中
+        // 是否要将 Mapper 接口添加到 Configuration 全局配置对象中
         scanner.setAddToConfig(this.addToConfig);
-        // 设置 MapperScan 属性
+        // 设置 MapperScan 中的属性
         scanner.setAnnotationClass(this.annotationClass);
         scanner.setMarkerInterface(this.markerInterface);
         scanner.setSqlSessionFactory(this.sqlSessionFactory);
@@ -395,7 +397,7 @@ public class MapperScannerConfigurer
                 ConfigurableApplicationContext.CONFIG_LOCATION_DELIMITERS));
     }
 
-    /*
+    /**
      * BeanDefinitionRegistries are called early in application startup, before
      * BeanFactoryPostProcessors. This means
      *  that
@@ -407,7 +409,7 @@ public class MapperScannerConfigurer
      * definition. Then update the values.
      */
     private void processPropertyPlaceHolders() {
-        // 解析占位符
+        // 加载 resource
         Map<String, PropertyResourceConfigurer> prcs =
             applicationContext.getBeansOfType(PropertyResourceConfigurer.class, false, false);
 

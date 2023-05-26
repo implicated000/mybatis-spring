@@ -165,7 +165,7 @@ public class ClassPathMapperScanner extends ClassPathBeanDefinitionScanner {
         // 是否接受所有接口
         boolean acceptAllInterfaces = true;
 
-        // 扫描添加了自定义的注解接口
+        // 扫描添加了自定义的注解接口，默认为 org.apache.ibatis.annotations.Mapper
         // if specified, use the given annotation and / or marker interface
         if (this.annotationClass != null) {
             addIncludeFilter(new AnnotationTypeFilter(this.annotationClass));
@@ -238,18 +238,18 @@ public class ClassPathMapperScanner extends ClassPathBeanDefinitionScanner {
                 scopedProxy = true;
             }
 
-            // 只修改 beanClass，不修改 beanClassName
+            // 获取原类型
             String beanClassName = definition.getBeanClassName();
             LOGGER.debug(() ->
                 "Creating MapperFactoryBean with name '" + holder.getBeanName() + "' and '" + beanClassName + "' " +
                     "mapperInterface");
 
+            // 设置 MapperFactoryBean<T> 构造器参数 mapperInterface，指定泛型
             // the mapper interface is the original class of the bean
             // but, the actual class of the bean is MapperFactoryBean
-            // 设置 MapperFactoryBean<T> 构造器参数 beanClassName
             definition.getConstructorArgumentValues().addGenericArgumentValue(beanClassName); // issue #59
 
-            // 修改 beanClass 为 MapperFactoryBean
+            // 修改 beanClass 为 org.mybatis.spring.mapper.MapperFactoryBean
             definition.setBeanClass(this.mapperFactoryBeanClass);
 
             // 是否要将接口添加到 Configuration 全局配置对象中，默认为 True
@@ -259,17 +259,18 @@ public class ClassPathMapperScanner extends ClassPathBeanDefinitionScanner {
             // https://github.com/mybatis/spring-boot-starter/issues/475
             definition.setAttribute(FACTORY_BEAN_OBJECT_TYPE, beanClassName);
 
-            // 显式工厂调用
+            // 是否指定了 SqlSessionFactory
             boolean explicitFactoryUsed = false;
 
             // 添加 sqlSessionFactory
             // SqlSessionDaoSupport.setSqlSessionFactory()
             if (StringUtils.hasText(this.sqlSessionFactoryBeanName)) {
-                definition.getPropertyValues().add("sqlSessionFactory",
-                    new RuntimeBeanReference(this.sqlSessionFactoryBeanName));
+                definition.getPropertyValues()
+                    .add("sqlSessionFactory", new RuntimeBeanReference(this.sqlSessionFactoryBeanName));
                 explicitFactoryUsed = true;
             } else if (this.sqlSessionFactory != null) {
-                definition.getPropertyValues().add("sqlSessionFactory", this.sqlSessionFactory);
+                definition.getPropertyValues()
+                    .add("sqlSessionFactory", this.sqlSessionFactory);
                 explicitFactoryUsed = true;
             }
 
@@ -277,25 +278,24 @@ public class ClassPathMapperScanner extends ClassPathBeanDefinitionScanner {
             if (StringUtils.hasText(this.sqlSessionTemplateBeanName)) {
                 // sqlSessionTemplate 覆盖 sqlSessionFactory
                 if (explicitFactoryUsed) {
-                    LOGGER.warn(
-                        () -> "Cannot use both: sqlSessionTemplate and sqlSessionFactory together. sqlSessionFactory " +
-                            "is ignored.");
+                    LOGGER.warn(() -> "Cannot use both: sqlSessionTemplate and sqlSessionFactory together. " +
+                        "sqlSessionFactory is ignored.");
                 }
-                definition.getPropertyValues().add("sqlSessionTemplate",
-                    new RuntimeBeanReference(this.sqlSessionTemplateBeanName));
+                definition.getPropertyValues()
+                    .add("sqlSessionTemplate", new RuntimeBeanReference(this.sqlSessionTemplateBeanName));
                 explicitFactoryUsed = true;
             } else if (this.sqlSessionTemplate != null) {
                 if (explicitFactoryUsed) {
-                    LOGGER.warn(
-                        () -> "Cannot use both: sqlSessionTemplate and sqlSessionFactory together. sqlSessionFactory " +
-                            "is ignored.");
+                    LOGGER.warn(() -> "Cannot use both: sqlSessionTemplate and sqlSessionFactory together. " +
+                        "sqlSessionFactory is ignored.");
                 }
-                definition.getPropertyValues().add("sqlSessionTemplate", this.sqlSessionTemplate);
+                definition.getPropertyValues()
+                    .add("sqlSessionTemplate", this.sqlSessionTemplate);
                 explicitFactoryUsed = true;
             }
 
-            // 上面没有找到对应的 SqlSessionFactory 或者 sqlSessionTemplate，则设置通过类型注入
-            // 注入方式 by type
+            // 上面没有找到对应的 SqlSessionFactory 或者 sqlSessionTemplate，则指定 mapper 通过类型注入
+            // 注入方式 by type （全局唯一）
             if (!explicitFactoryUsed) {
                 LOGGER.debug(() -> "Enabling autowire by type for MapperFactoryBean with name '" + holder.getBeanName() + "'.");
                 definition.setAutowireMode(AbstractBeanDefinition.AUTOWIRE_BY_TYPE);

@@ -17,6 +17,7 @@ package org.mybatis.spring.mapper;
 
 import static org.springframework.util.Assert.notNull;
 
+import org.apache.ibatis.binding.MapperRegistry;
 import org.apache.ibatis.executor.ErrorContext;
 import org.apache.ibatis.session.Configuration;
 import org.mybatis.spring.SqlSessionTemplate;
@@ -65,7 +66,7 @@ public class MapperFactoryBean<T> extends SqlSessionDaoSupport implements Factor
     }
 
     /**
-     * 继承了 DaoSupport 接口，它实现了 InitializingBean 接口
+     * 继承了 DaoSupport 接口，DaoSupport 实现了 InitializingBean 接口
      * 在 afterPropertiesSet() 方法中，会在 bean 创建之后调用该方法
      * {@inheritDoc}
      */
@@ -81,11 +82,14 @@ public class MapperFactoryBean<T> extends SqlSessionDaoSupport implements Factor
         Configuration configuration = getSqlSession().getConfiguration();
         if (this.addToConfig && !configuration.hasMapper(this.mapperInterface)) {
             try {
+                // 添加 MapperProxyFactory<this.mapperInterface> 到
+                // org.apache.ibatis.session.Configuration#mapperRegistry#knownMappers
                 configuration.addMapper(this.mapperInterface);
             } catch (Exception e) {
                 logger.error("Error while adding the mapper '" + this.mapperInterface + "' to configuration.", e);
                 throw new IllegalArgumentException(e);
             } finally {
+                // 清空 error
                 ErrorContext.instance().reset();
             }
         }
@@ -96,7 +100,7 @@ public class MapperFactoryBean<T> extends SqlSessionDaoSupport implements Factor
      */
     @Override
     public T getObject() throws Exception {
-        // 返回由MapperProxy代理的DAO对象
+        // 从 org.apache.ibatis.session.Configuration#mapperRegistry#knownMappers 中返回 MapperProxy代理对象
         return getSqlSession().getMapper(this.mapperInterface);
     }
 
